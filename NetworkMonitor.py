@@ -38,18 +38,16 @@ def ping_ip(ip, canvas, indicator):
 def start_ping_thread(ip, canvas, indicator):
     threading.Thread(target=ping_ip, args=(ip, canvas, indicator), daemon=True).start()
 
-def update_status(rows):
-    for row in rows:
-        ip_or_hostname = row['entry'].get().strip()
-        canvas = row['canvas']
-        indicator = row['indicator']
-        # Check if the IP address or hostname field is empty
-        if not ip_or_hostname or ip_or_hostname == "IP Address":
-            canvas.itemconfig(indicator, fill='red1')
-            continue
-        # Attempt to ping the IP or hostname
-        start_ping_thread(ip_or_hostname, canvas, indicator)
-    root.after(12000, lambda: update_status(rows))
+def update_status(row):
+    ip_or_hostname = row['entry'].get().strip()
+    canvas = row['canvas']
+    indicator = row['indicator']
+    # Check if the IP address or hostname field is empty
+    if not ip_or_hostname or ip_or_hostname == "IP Address":
+        canvas.itemconfig(indicator, fill='red1')
+        return
+    # Attempt to ping the IP or hostname
+    start_ping_thread(ip_or_hostname, canvas, indicator)
 
 def toggle_lock(row):
     # Check current state of the entry field
@@ -70,7 +68,14 @@ def toggle_lock(row):
 def add_row(tab, rows):
     row = create_row(tab, rows)
     rows.append(row)
-    update_status(rows)
+    update_status(row)
+
+def schedule_update():
+    for tab, rows in pages.items():
+        for row in rows:
+            update_status(row)
+    root.after(12000, schedule_update)
+
 
 def remove_row(rows, row):
     row['frame'].destroy()
@@ -134,5 +139,7 @@ add_btn = ttk.Button(root, text='+', command=add_row_to_current_tab)
 add_btn.pack(side='bottom', padx=5, pady=5)
 
 root.bind("<Escape>", clear_focus)
+
+schedule_update()
 
 root.mainloop()
